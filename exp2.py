@@ -14,16 +14,14 @@ with open('output/trainMatrix.pkl', 'rb') as f:
     trainMatrix = pkl.load(f).tocsc()
 with open('output/simiMat.pkl', 'rb') as f:
     simiMat = pkl.load(f)
-with open('output/simiSumList.pkl', 'rb') as f:
-    simiSumList = pkl.load(f)
 
 def predict(i, j):
     # tt1 = time()
-    upper = simiMat.getrow(i).dot(trainMatrix.getcol(j))
+    traincol = trainMatrix.getcol(j)
+    upper = simiMat.getrow(i).dot(traincol)
     # tt2 = time()
     # 优化效果不明显，猜测原因为Python本身的缓存作用
-    lower = simiSumList[i]
-    # lower = simiMat.getrow(i).sum()
+    lower = simiMat.getrow(i)[0, traincol.nonzero()[0]].sum()
     # tt3 = time()
     # print('up = %.2fms' % ((tt2 - tt1) * 1000))
     # print('lw = %.2fms' % ((tt3 - tt2) * 1000))
@@ -35,7 +33,7 @@ print('Load data: %.2fms' % ((t2 - t1) * 1000))
 rmse = 0
 predict_data = list()
 n = testMatrix.count_nonzero()
-alt = n // 50
+alt = n // 100
 cnt = 0
 for (i,j,v) in zip(testMatrix.row, testMatrix.col, testMatrix.data):
     p = predict(i, j)
@@ -43,7 +41,7 @@ for (i,j,v) in zip(testMatrix.row, testMatrix.col, testMatrix.data):
     rmse += (p - v) ** 2
     predict_data.append(p)
     if cnt % alt == 0:
-        print('Process %.2f' % (cnt / n * 100))
+        print('Process %.2f%%' % (cnt / n * 100))
 n = testMatrix.count_nonzero()
 rmse = np.sqrt(rmse / n)
 

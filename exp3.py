@@ -5,12 +5,16 @@ from utils import HwGlobal as hg
 import numpy as np
 from scipy.sparse.linalg import norm
 import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(color_codes=True)
+sns.set_style('ticks')
 
 lbd = 1e-2
 k = 50
 alpha = 1e-4
-eps = 1e-2
+eps = 1e3
 init_uv = 1e-2
+MAX_ITER = 200
 
 t1 = time()
 
@@ -42,7 +46,7 @@ rmseList.append(rmse)
 t3 = time()
 print('Init values: %.2fms' % ((t3 - t2) * 1000))
 
-for i in range(100):
+for i in range(MAX_ITER):
     pJU = AUVTX * V + 2 * lbd * U
     pJV = AUVTX.T * U + 2 * lbd * V
     # TODO: Gauss
@@ -54,6 +58,7 @@ for i in range(100):
     AUVTX = AUVT - trainMatrix
 
     rmse = norm(mask.multiply(UVT) - testMatrix) / np.sqrt(n)
+    JL = J
     J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)**2
     jList.append(J)
     rmseList.append(rmse)
@@ -63,13 +68,17 @@ for i in range(100):
     print('rmse = %.3f, J = %.1f' % (rmse, J))
     t3 = t4
 
+    if np.abs(JL - J) < eps:
+        break
+
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-line1 = ax1.plot(rmseList, 'r-')
+line1, = ax1.plot(rmseList, 'r-')
 plt.ylabel("RMSE")
 ax2 = fig.add_subplot(111, sharex=ax1, frameon=False)
-line2 = ax2.plot(jList, 'b-')
+line2, = ax2.plot(jList, 'b-')
 ax2.yaxis.tick_right()
 ax2.yaxis.set_label_position("right")
 plt.ylabel("J")
+plt.legend([line1, line2], ["RMSE", "J"])
 fig.savefig('output/exp3k%dl%d.png' % (k, -np.log10(lbd)), dpi=300)

@@ -48,9 +48,8 @@ print('Init values: %.2fms' % ((t3 - t2) * 1000))
 
 for i in range(MAX_ITER):
     pJU = AUVTX * V + 2 * lbd * U
-    pJV = AUVTX.T * U + 2 * lbd * V
-    # TODO: Gauss
     U = U - alpha * pJU
+    pJV = (A.multiply(U * V.T) - trainMatrix).T * U + 2 * lbd * V
     V = V - alpha * pJV
 
     UVT = U * V.T
@@ -71,9 +70,9 @@ for i in range(MAX_ITER):
     if np.abs(JL - J) < eps:
         break
 
-with open('output/exp3_jlist.pkl', 'wb') as f:
+with open('output/exp3_gauss_jlist.pkl', 'wb') as f:
     pkl.dump(jList, f)
-with open('output/exp3_rmselist.pkl', 'wb') as f:
+with open('output/exp3_gauss_rmselist.pkl', 'wb') as f:
     pkl.dump(rmseList, f)
 
 fig = plt.figure()
@@ -86,4 +85,4 @@ ax2.yaxis.tick_right()
 ax2.yaxis.set_label_position("right")
 plt.ylabel("J")
 plt.legend([line1, line2], ["RMSE", "J"])
-fig.savefig('output/exp3_k%dl%d.png' % (k, -np.log10(lbd)), dpi=300)
+fig.savefig('output/exp3_gauss_k%dl%d.png' % (k, -np.log10(lbd)), dpi=300)

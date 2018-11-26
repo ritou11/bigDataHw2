@@ -1,4 +1,5 @@
 from scipy.sparse import csr_matrix
+from scipy.sparse import diags
 import pickle as pkl
 from time import time
 from utils import HwGlobal as hg
@@ -22,8 +23,14 @@ with open('output/testMatrix.pkl', 'rb') as f:
     testMatrix = pkl.load(f)
 with open('output/trainMatrix.pkl', 'rb') as f:
     trainMatrix = pkl.load(f)
-with open('output/trainMatrixL3.pkl', 'rb') as f:
-    trainMatrixL3 = pkl.load(f)
+with open('output/testMatrix.pkl', 'rb') as f:
+    testMatrix = pkl.load(f)
+mask = (trainMatrix != 0).astype(int)
+trainRowMeans = list()
+for i in range(hg.N):
+    trainRowMeans.append(trainMatrix.getrow(i).sum() / trainMatrix.getrow(i).nnz)
+trainMean = diags(trainRowMeans, shape=(hg.N, hg.N))
+trainMatrixLM = trainMatrix - trainMean * mask
 
 t2 = time()
 print('Load data: %.2fms' % ((t2 - t1) * 1000))
@@ -39,8 +46,8 @@ jList = list()
 # Step 0
 UVT = U * V.T
 AUVT = A.multiply(UVT)
-AUVTX = AUVT - trainMatrixL3
-rmse = norm(mask.multiply(UVT) + mask.multiply(3) - testMatrix) / np.sqrt(n)
+AUVTX = AUVT - trainMatrixLM
+rmse = norm(mask.multiply(UVT) + trainMean * mask - testMatrix) / np.sqrt(n)
 J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)**2
 jList.append(J)
 rmseList.append(rmse)
@@ -57,10 +64,10 @@ for i in range(MAX_ITER):
 
     UVT = U * V.T
     AUVT = A.multiply(UVT)
-    AUVTX = AUVT - trainMatrixL3
+    AUVTX = AUVT - trainMatrixLM
 
     rmseL = rmse
-    rmse = norm(mask.multiply(UVT) + mask.multiply(3) - testMatrix) / np.sqrt(n)
+    rmse = norm(mask.multiply(UVT) + trainMean * mask - testMatrix) / np.sqrt(n)
     JL = J
     J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)**2
     jList.append(J)
@@ -73,12 +80,12 @@ for i in range(MAX_ITER):
 
     if np.abs(JL - J) < eps:
         break
-    if rmse > rmseL + 5e-4:
+    if rmse > rmseL + 1e-4:
         break
 
-with open('output/exp3_l3_jlist.pkl', 'wb') as f:
+with open('output/exp3_lm_jlist.pkl', 'wb') as f:
     pkl.dump(jList, f)
-with open('output/exp3_l3_rmselist.pkl', 'wb') as f:
+with open('output/exp3_lm_rmselist.pkl', 'wb') as f:
     pkl.dump(rmseList, f)
 
 fig = plt.figure()
@@ -91,4 +98,4 @@ ax2.yaxis.tick_right()
 ax2.yaxis.set_label_position("right")
 plt.ylabel("J")
 plt.legend([line1, line2], ["RMSE", "J"])
-fig.savefig('output/exp3_l3_k%dl%d.png' % (k, -np.log10(lbd)), dpi=300)
+fig.savefig('output/exp3_lm_k%dl%d.png' % (k, -np.log10(lbd)), dpi=300)

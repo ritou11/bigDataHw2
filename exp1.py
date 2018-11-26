@@ -13,5 +13,7 @@ with open('output/testMatrix.pkl', 'wb') as f:
 with open('output/trainMatrix.pkl', 'wb') as f:
     pkl.dump(trainMatrix, f)
 t3 = time()
-print('Get mats: %.2fms' % ((t2 - t1)*1000))
-print('Put mats: %.2fms' % ((t3 - t2)*1000))
+
+with open('output/exp1.log', 'w') as resFile:
+    print('Get mats: %.2fms' % ((t2 - t1)*1000), file=resFile)
+    print('Put mats: %.2fms' % ((t3 - t2)*1000), file=resFile)

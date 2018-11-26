@@ -5,6 +5,7 @@ from time import time
 from utils import csr_cosine_similarity
 from utils import HwGlobal as hg
 import numpy as np
+resFile = open('output/exp2_org.log', 'w')
 
 t1 = time()
 
@@ -28,7 +29,7 @@ def predict(i, j):
     return upper[0,0] / lower
 
 t2 = time()
-print('Load data: %.2fms' % ((t2 - t1) * 1000))
+print('Load data: %.2fms' % ((t2 - t1) * 1000), file=resFile)
 
 rmse = 0
 predict_data = list()
@@ -41,12 +42,12 @@ for (i,j,v) in zip(testMatrix.row, testMatrix.col, testMatrix.data):
     rmse += (p - v) ** 2
     predict_data.append(p)
     if cnt % alt == 0:
-        print('Process %.2f%%' % (cnt / n * 100))
+        print('Process %.2f%%' % (cnt / n * 100), file=resFile)
 n = testMatrix.count_nonzero()
 rmse = np.sqrt(rmse / n)
 
 t3 = time()
-print('Predict test: %.2fms' % ((t3 - t2) * 1000))
+print('Predict test: %.2fms' % ((t3 - t2) * 1000), file=resFile)
 
 print('RMSE = %.2f' % rmse)
 predMat = coo_matrix((predict_data, (testMatrix.row, testMatrix.col)), shape=(hg.N, hg.N))
@@ -54,4 +55,5 @@ with open('output/predMat.pkl', 'wb') as f:
     pkl.dump(predMat, f)
 
 t4 = time()
-print('Save result: %.2fms' % ((t4 - t3) * 1000))
+print('Save result: %.2fms' % ((t4 - t3) * 1000), file=resFile)
+resFile.close()

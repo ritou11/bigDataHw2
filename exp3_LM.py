@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set(color_codes=True)
 sns.set_style('ticks')
+resFile = open('output/exp3_LM.log', 'w')
 
 lbd = 1e-2
 k = 50
@@ -33,7 +34,7 @@ trainMean = diags(trainRowMeans, shape=(hg.N, hg.N))
 trainMatrixLM = trainMatrix - trainMean * mask
 
 t2 = time()
-print('Load data: %.2fms' % ((t2 - t1) * 1000))
+print('Load data: %.2fms' % ((t2 - t1) * 1000), file=resFile)
 
 n = testMatrix.count_nonzero()
 N = hg.N
@@ -53,7 +54,7 @@ jList.append(J)
 rmseList.append(rmse)
 
 t3 = time()
-print('Init values: %.2fms' % ((t3 - t2) * 1000))
+print('Init values: %.2fms' % ((t3 - t2) * 1000), file=resFile)
 
 for i in range(MAX_ITER):
     pJU = AUVTX * V + 2 * lbd * U
@@ -74,8 +75,8 @@ for i in range(MAX_ITER):
     rmseList.append(rmse)
 
     t4 = time()
-    print('Step %d: %.2fms' % (i + 1 ,(t4 - t3) * 1000))
-    print('rmse = %.3f, J = %.1f' % (rmse, J))
+    print('Step %d: %.2fms' % (i + 1 ,(t4 - t3) * 1000), file=resFile)
+    print('rmse = %.3f, J = %.1f' % (rmse, J), file=resFile)
     t3 = t4
 
     if np.abs(JL - J) < eps:
@@ -99,3 +100,5 @@ ax2.yaxis.set_label_position("right")
 plt.ylabel("J")
 plt.legend([line1, line2], ["RMSE", "J"])
 fig.savefig('output/exp3_lm_k%dl%d.png' % (k, -np.log10(lbd)), dpi=300)
+
+resFile.close()

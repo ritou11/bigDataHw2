@@ -6,6 +6,7 @@ from utils import csr_cosine_similarity
 from utils import HwGlobal as hg
 import numpy as np
 from scipy.sparse.linalg import norm
+resFile = open('output/exp2.log', 'w')
 
 t1 = time()
 
@@ -17,23 +18,23 @@ with open('output/simiMat.pkl', 'rb') as f:
     simiMat = pkl.load(f)
 
 t2 = time()
-print('Load data: %.2fms' % ((t2 - t1) * 1000))
+print('Load data: %.2fms' % ((t2 - t1) * 1000), file=resFile)
 
 upper = simiMat * trainMatrix
 
 t3 = time()
-print('Calc upper: %.2fms' % ((t3 - t2) * 1000))
+print('Calc upper: %.2fms' % ((t3 - t2) * 1000), file=resFile)
 
 mask = (trainMatrix != 0).astype(int)
 lower = simiMat * mask
 
 t4 = time()
-print('Calc lower: %.2fms' % ((t4 - t3) * 1000))
+print('Calc lower: %.2fms' % ((t4 - t3) * 1000), file=resFile)
 
 predMat = upper.multiply(lower.power(-1))
 
 t5 = time()
-print('Predict: %.2fms' % ((t5 - t4) * 1000))
+print('Predict: %.2fms' % ((t5 - t4) * 1000), file=resFile)
 
 n = testMatrix.count_nonzero()
 testMask = (testMatrix != 0).astype(int)
@@ -41,11 +42,12 @@ maskPredMat = predMat.multiply(testMask)
 rmse = norm(maskPredMat - testMatrix) / np.sqrt(n)
 
 t6 = time()
-print('Predict test: %.2fms' % ((t6 - t5) * 1000))
+print('Predict test: %.2fms' % ((t6 - t5) * 1000), file=resFile)
 
-print('RMSE = %.2f' % rmse)
+print('RMSE = %.2f' % rmse, file=resFile)
 with open('output/predMat.pkl', 'wb') as f:
     pkl.dump(predMat, f)
 
 t7 = time()
-print('Save result: %.2fms' % ((t7 - t6) * 1000))
+print('Save result: %.2fms' % ((t7 - t6) * 1000), file=resFile)
+resFile.close()

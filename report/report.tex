@@ -1,15 +1,13 @@
 \documentclass[a4paper,12pt]{article}
 \usepackage[noabs]{HaotianReport}
 
-\title{第一次作业：QQ群组数据统计分析}
+\title{第二次作业：电影推荐}
 \author{刘昊天}
 \authorinfo{电博181班, 2018310648}
 \runninghead{大数据分析(B)课程报告}
-\studytime{2018年10月-11月}
+\studytime{2018年11月}
 
-\renewcommand{\lstlistingname}{记录}
-\crefname{listing}{记录}{记录}\Crefname{listing}{记录}{记录}
-\graphicspath{{./}{./figure/}{./meta/fig/}}
+\graphicspath{{./}{./output/}}
 
 \begin{document}
     \maketitle
@@ -18,8 +16,46 @@
     \paragraph{问题描述}
     将输入文件整理成唯独为用户*电影的矩阵$X$，其中$X(i,j)$为用户$i$对电影$j$的打分。输出两个矩阵：$X_{train}$和$X_{test}$，分别对应训练集和测试集。
 
-    定义集合$U$为用户集合，共$N_u$个用户；集合$M$为电影集合，共$N_m$个电影。$X_{ij}$为用户$i\in U$对电影$j\in M$的评分。
+    定义集合$U$为用户集合，共$N_u$个用户；集合$M$为电影集合，共$N_m$个电影。$X_{ij}$为用户$i\in U$对电影$j\in M$的评分。在本题中，$N_u=10000$，$N_m=10000$。
 
+    在本题中，共提供了两组数据，其中训练集共TODO条记录，则$X_{train}$至多有$TODO\%$的非零元素；测试集共TODO条记录，$X_{test}$至多有$TODO\%$的非零元素。可见，$X_{train}$和$X_{test}$是十分稀疏的，因此需要用稀疏技术进行处理。
+
+    在Python的scipy包中，有sparse模块包含了不同的稀疏矩阵类。其中csr\_matrix (Compressed Sparse Row marix) 为按行压缩的稀疏矩阵格式，另外还有csc(Compressed Sparse Column)、coo(COOrdinate)、bsr(Block Sparse Row)、dia(DIAgonal)、dok(Dictionary of Keys)、lil(List of Lists)等储存格式。不同的稀疏矩阵格式适用于不同的使用场景，各有优势劣势。csr\_matrix的优点在于高效的算术运算(CSR + CSR，CSR * CSR等)、行切片以及矩阵矢量积，而劣势是列切片及稀疏结构的变化。在本题中，数据矩阵不发生结构变化，且需参与大量运算，因此csr\_matrix是合适的。
+
+    考查数据文件的格式发现，训练集、测试集的数据文件中用户uid是一个大整数，而我们需要将其映射到一个[0,9999]的区间中。这个映射是通过用户数据文件建立的，我们可以将用户出现在该文件中的行号减一作为用户在矩阵中的新id，记为$i$。由于数据文件行数很多，构建矩阵过程中需要大量查询用户的$i$值，因此映射$uid\rightarrow i$需要是高效的。从数据结构出发可以考虑使用HashMap，而在Python中只需要使用dict即可。建立该映射的代码如\cref{lst:readUserid}所示。电影mid在矩阵中的新id即为$j$，$j=mid-1$即可。
+    \begin{lstlisting}[language=python,caption={readUserid},label=lst:readUserid]
+def __init__(self, filename = ''):
+    self.user_id = dict()
+    if filename:
+        self.readUserid(filename)
+def readUserid(self, filename):
+    with open(filename, 'r') as f:
+        for i, l in enumerate(f):
+            self.user_id[int(l)] = i
+    \end{lstlisting}
+
+    考虑到csr格式的劣势，我们不能采用逐个增加的方法构建稀疏矩阵，而应采用一次构建的方式。最终使用的生成代码如\cref{lst:getMatrixFromTxt}所示。
+    \begin{lstlisting}[language=python,caption={getMatrixFromTxt},label=lst:getMatrixFromTxt]
+# user index = row_number of user_id (from 0)
+# movie index = movie_id - 1 (from 0)
+def getMatrixFromTxt(self, filename, level=0):
+    uid = list()
+    mid = list()
+    sc = list()
+    with open(filename, 'r') as f:
+        for i, l in enumerate(f):
+            dt = l.split()
+            score = int(dt[2]) - level
+            if score != 0:
+                uid.append(self.user_id[int(dt[0])])
+                mid.append(int(dt[1]) - 1)
+                sc.append(score)
+    return csr_matrix((sc, (uid, mid)), shape=(hg.N, hg.N))
+    \end{lstlisting}
+
+    程序中，level参数表示构建矩阵时考虑的水平参数，读取的每个评分都将被减去level。从意义上将，在level代表了用户对没有打分的电影的评价，也即一个整体评价水平。这个参数是本报告引入的\textbf{关键参数}，将极大影响最终结果。
+
+    TODO：TIME
     \section{实验二:协同过滤}
     \paragraph{问题描述}
     实现基于用户的协同过滤算法：猜测用户$i$是否喜欢电影$j$，只要看与$i$相似的用户是否喜欢$j$。与$i$越相似的用户，其对j的评分越有参考价值。
@@ -33,7 +69,8 @@
     \subsection{算法实现}
 
     \subsection{结果分析}
-
+    TODO: table for org,exp2,l3,lm
+    在本任务中，首先考虑最简单的$level=0$情况，此时相当于认为用户对未评分的电影评分为0。
     \section{实验三:矩阵分解}
     \paragraph{问题描述}
     实现基于梯度下降的矩阵分解算法：将行为矩阵$X$分解为$U$和$V$两个矩阵的乘积，使$UV^T$在已知值部分逼近$X$。隐空间维度$k$是算法的参数，$U$和$V$可以认为是用户和电影在隐空间的特征表达，其乘积矩阵可预测$X$的未知部分。

@@ -132,10 +132,50 @@ def getMatrixFromTxt(self, filename, level=0):
       \text{RMSE}=||T - \bar S\circ B||_2/\sqrt{n}
     \end{equation}
     \subsection{算法实现}
-    代码见附件exp2.py。
+    在本任务中，首先考虑最简单的$level=0$情况，此时相当于认为用户对未评分的电影评分为0。基本代码见附件exp2\_org.py及exp2.py，思路按照上文所述。其中涉及两个技巧，其一是矩阵信息数据，采用pickle读取实验一中生成的文件，
+    其二是信息矩阵的生成，可以采用
+    \begin{lstlisting}[language=python]
+mask = (trainMatrix != 0).astype(int)
+testMask = (testMatrix != 0).astype(int)
+    \end{lstlisting}
+
+    特别地，文件exp2\_org.py中给出了一种利用测试阵稀疏性的求解方式。这种方式首先同样求解相似度矩阵，是一个$N_u\times N_u$的满阵，再对于测试集的每个元素分别求预测值，而不使用矩阵乘法一次将全部$N_u\times N_m$个预测值全部求出。由于测试集的稀疏度很高(1.72\%非零元素)，理论上讲这种方法会节省大量计算时间，且节省内存空间。但在实际操作中，由于这种方法必须采用循环方式求解，无法利用Python矩阵运算的底层代码，因此时间效率会受到影响。究竟是Python矩阵运算底层优化带来的效率提升有效，还是1.72\%的稀疏性带来的运算减少有效，需要通过实际验证。
+
+    进一步考虑，认为用户对未评分的电影评分为0显然是不合理的，且目前求出的相似度矩阵均为正数，无法体现对不相似用户的评分的惩罚。由于用户的评分是[1,5]，一个初等的想法是将所有未知评分都置为3，但这样会使得训练矩阵丧失稀疏性，大大增加计算量，且所有相似度依然为正数。因此，可以将评分的指标中心置为3，在所有已知评分的基础上减3，以新的评分矩阵计算相似度。这就是所谓的$level=3$即"L3方法"。此时矩阵会由于$level=3$而出现新的0元素，因此稀疏性将会增强，计算效率提高。
+
+    L3方法的代码见附件exp2\_L3.py。其中关键步骤为
+    \begin{lstlisting}[language=python]
+upper = simiMat * trainMatrixL3
+mask = (trainMatrix != 0).astype(int)
+lower = np.abs(simiMat) * mask
+...
+maskPredMat = predMat.multiply(testMask) + testMask.multiply(3)
+    \end{lstlisting}
+    即应注意在给出预测分数时要将$level$补回。其中trainMatrixL3的生成只需将生成矩阵函数的$level$参数设为3。
+
+    更进一步考虑，采用3作为对未评分的的电影评分也是不够准确的。对不同用户来说，打分的标准不尽相同。有些人会倾向于给高分，而有些人则倾向于给低分，那么对不同人的未评分电影评分也应该是有差异的。因此，可以考虑采用每个用户的平均评分，来作为对未评分项的估计。为保持稀疏度，同样采用类似L3方法的技巧，将用户的已有评分减去该用户的评分平均值，相当于做了一个标准化的操作。这种方法为"LM方法"，即$level_i=Mean_i$。此时稀疏性不会得到增强。
+
+    LM方法的代码见附件exp2\_LM.py。其中关键步骤为
+    \begin{lstlisting}[language=python]
+mask = (trainMatrix != 0).astype(int)
+trainRowMeans = list()
+for i in range(hg.N):
+    trainRowMeans.append(trainMatrix.getrow(i).sum() / trainMatrix.getrow(i).nnz)
+trainMean = diags(trainRowMeans, shape=(hg.N, hg.N))
+trainMatrixLM = trainMatrix - trainMean * mask
+simiMat = csr_cosine_similarity(trainMatrixLM)
+...
+upper = simiMat * trainMatrixLM
+lower = np.abs(simiMat) * mask
+...
+maskPredMat = predMat.multiply(testMask) + trainMean * testMask
+    \end{lstlisting}
+    即应注意在给出预测分数时要将$level_i$补回。
+
+    L3方法和LM方法中，特别需要注意的是，信息矩阵应使用原始矩阵进行导出，这是信息矩阵定义的一个显然推论。
     \subsection{结果分析}
     TODO: table for org,exp2,l3,lm
-    在本任务中，首先考虑最简单的$level=0$情况，此时相当于认为用户对未评分的电影评分为0。
+
     \section{实验三:矩阵分解}
     \paragraph{问题描述}
     实现基于梯度下降的矩阵分解算法：将行为矩阵$X$分解为$U$和$V$两个矩阵的乘积，使$UV^T$在已知值部分逼近$X$。隐空间维度$k$是算法的参数，$U$和$V$可以认为是用户和电影在隐空间的特征表达，其乘积矩阵可预测$X$的未知部分。

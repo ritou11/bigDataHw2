@@ -55,7 +55,7 @@ def getMatrixFromTxt(self, filename, level=0):
 
     程序中，level参数表示构建矩阵时考虑的水平参数，读取的每个评分都将被减去level。从意义上将，在level代表了用户对没有打分的电影的评价，也即一个整体评价水平。这个参数是本报告引入的\textbf{关键参数}，将极大影响最终结果。
 
-    在MacBook Pro(3.1 GHz Intel Core i5, 16GB 2133 MHz LPDDR3, macOS Mojave 10.14.1)平台上进行测试，Python版本为3.6.2。生成矩阵耗时如\cref{tbl:exp1}所示，其中储存矩阵采用pickle包的dump函数进行储存。
+    在MacBook Pro(3.1 GHz Intel Core i5, 16GB 2133 MHz LPDDR3, macOS Mojave 10.14.1)平台上进行测试，Python版本为3.6.2。选择全量数据，生成矩阵耗时如\cref{tbl:exp1}所示，其中储存矩阵采用pickle包的dump函数进行储存。
     \begin{table}
       \centering
       \caption{生成数据矩阵耗时}
@@ -75,13 +75,64 @@ def getMatrixFromTxt(self, filename, level=0):
     实现基于用户的协同过滤算法：猜测用户$i$是否喜欢电影$j$，只要看与$i$相似的用户是否喜欢$j$。与$i$越相似的用户，其对j的评分越有参考价值。
     \subsection{原理推导}
     根据原理写出
-    $$
-      \bar S_{ij} = \frac{\sum_{k\in U} Q_{ik}S_{kj}}{\sum_{k\in U} |Q_{ik}|}
-    $$
-    其中，$Q_{N_u\times N_u}$为相似度矩阵，$S_{N_u\times N_m}$为已知用户电影评分矩阵，$\bar S_{N_u\times N_m}$为估计用户电影评分矩阵。在本题中，$S=X_{train}$。
+    \begin{equation}
+      \bar S_{ij} = \frac{\sum\limits_{k\in U} Q_{ik}S_{kj}}{\sum\limits_{k\in U} |Q_{ik}|}
+    \end{equation}
+    其中，$Q_{N_u\times N_u}$为相似度矩阵，$Q=Q^T$，$S_{N_u\times N_m}$为已知用户电影评分矩阵，$\bar S_{N_u\times N_m}$为估计用户电影评分矩阵。在本题中，$S=X_{train}, T=X_{test}$。
 
+    定义信息矩阵$A_{N_u\times N_m}$
+    \begin{equation}
+      A_{ij}=\begin{cases}
+      1, & \text{if } S_{ij} \text{ is known}\\
+      0, & \text{otherwise}
+    \end{cases}
+    \end{equation}
+    根据以上表达，可以写出矩阵形式
+    \begin{equation}
+      \bar S = QS\circ [|Q|A]^{-1}
+    \end{equation}
+    其中$<\circ>$运算符代表矩阵逐元素乘法，$[\cdot]^{-1}$代表矩阵逐元素取倒数。
+
+    相似度矩阵采用余弦相似度的计算方式，即
+    \begin{equation}
+      \begin{aligned}
+        Q_{ij} =
+        \begin{cases}
+          \frac{S_i\cdot S_j}{||S_i||_2 ||S_j||_2} = \frac{S_i S_j^T}{\sqrt{S_i S_i^T} \sqrt{S_j S_j^T}},& \text{if } i\neq j, S_i\neq 0, S_j\neq 0\\
+          0, & \text{if } i\neq j, S_i=0 \text{ or } S_j=0\\
+          1, & \text{if } i= j
+        \end{cases}
+      \end{aligned}
+    \end{equation}
+    其中$S_i$表示$S$阵的第$i$行。
+
+    根据该表达，可以写出矩阵形式的相似度计算
+    \begin{equation}
+      \begin{aligned}
+        Q' &= SS^T\\
+        Q'_{ii} &= 1\\
+        Q &= diag(Q')^{-1}Q'diag^{-1}(Q')^{-1}
+      \end{aligned}
+    \end{equation}
+    其中$diag()^{-1}$代表矩阵的对角元素的倒数组成的对角矩阵。
+
+    计算得到预测值后，使用RMSE指标评估算法的准确性。具体做法是，对于测试集的每个元素，求取预测值和实际值的偏差，并将其方均根作为误差值。定义信息矩阵$B_{N_u\times N_m}$，
+    \begin{equation}
+      B_{ij}=\begin{cases}
+      1, & \text{if } T_{ij} \text{ is known}\\
+      0, & \text{otherwise}
+    \end{cases}
+    \end{equation}
+    则RMSE的表达为
+    \begin{equation}
+      \text{RMSE}=\sqrt{\frac{\sum\limits_{<i,j>,B_{ij}=1} (T_{ij} - \bar S_{ij})}{n}}
+    \end{equation}
+    写成矩阵形式
+    \begin{equation}
+      \text{RMSE}=||T - \bar S\circ B||_2/\sqrt{n}
+    \end{equation}
     \subsection{算法实现}
-
+    代码见附件exp2.py。
     \subsection{结果分析}
     TODO: table for org,exp2,l3,lm
     在本任务中，首先考虑最简单的$level=0$情况，此时相当于认为用户对未评分的电影评分为0。
@@ -97,7 +148,6 @@ def getMatrixFromTxt(self, filename, level=0):
       \label{eq:exp3J}
       J =\frac{1}{2} ||A\circ (X-UV^T)||_F^2 + \lambda ||U||_F^2 + \lambda ||V||_F^2
     \end{equation}
-    其中$<\circ>$运算符代表矩阵逐元素乘法。
     \subsection{算法实现}
 
     \subsection{结果分析}

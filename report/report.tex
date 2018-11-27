@@ -174,8 +174,27 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
 
     L3方法和LM方法中，特别需要注意的是，信息矩阵应使用原始矩阵进行导出，这是信息矩阵定义的一个显然推论。
     \subsection{结果分析}
-    TODO: table for org,exp2,l3,lm
-
+    计算结果如\cref{tbl:exp2}所示。
+    \begin{table}
+      \centering
+      \caption{协同过滤算法结果对比}
+      \label{tbl:exp2}
+      \begin{tabular}{lrrrrr}
+        \toprule
+        算法&分子计算时间&分母计算时间&预测时间&总时间&RMSE\\
+        \midrule
+        Original & - & - & - & - & - \\
+        Standard & - & - & - & - & - \\
+        L3 & - & - & - & - & - \\
+        LM & - & - & - & - & - \\
+        \bottomrule
+      \end{tabular}
+    \end{table}
+    \begin{enumerate}
+      \item Python矩阵运算底层优化带来的效率提升要比1.72\%的稀疏性带来的运算减少有效得多，效率大致提升TODO倍。可见，Python矩阵运算库经过了十分精细、强大的优化，更适合用在这里。
+      \item L3方法与LM方法带来的效果改进是显著的。
+      \item L3方法由于提升了训练集的稀疏度，因此分子的计算效率更高；由于其使用的信息矩阵是通过原矩阵求出的，因此分母计算时间几乎不变。
+    \end{enumerate}
     \section{实验三:矩阵分解}
     \paragraph{问题描述}
     实现基于梯度下降的矩阵分解算法：将行为矩阵$X$分解为$U$和$V$两个矩阵的乘积，使$UV^T$在已知值部分逼近$X$。隐空间维度$k$是算法的参数，$U$和$V$可以认为是用户和电影在隐空间的特征表达，其乘积矩阵可预测$X$的未知部分。

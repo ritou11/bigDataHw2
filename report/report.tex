@@ -1,5 +1,6 @@
 \documentclass[a4paper,12pt]{article}
 \usepackage[noabs]{HaotianReport}
+\usepackage[ruled]{algorithm2e}
 
 \title{第二次作业：电影推荐}
 \author{刘昊天}
@@ -207,6 +208,50 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
       \label{eq:exp3J}
       J =\frac{1}{2} ||A\circ (X-UV^T)||_F^2 + \lambda ||U||_F^2 + \lambda ||V||_F^2
     \end{equation}
+
+    对目标函数求偏导，得到迭代求解需要的表达式
+    \begin{equation}
+      \begin{aligned}
+        \partial J/\partial U &= (A\circ (UV^T-X))V + 2\lambda U\\
+        \partial J/\partial V &= (A\circ (UV^T-X))^TU + 2\lambda V\\
+      \end{aligned}
+    \end{equation}
+
+    写出基于Jacobi迭代的UV分解算法，如\cref{alg:jacobi}所示。
+    \begin{algorithm}
+        \caption{矩阵的UV分解算法(Jacobi)}
+        \label{alg:jacobi}
+        \KwIn{学习率$\alpha$，隐空间维度$k$，正则项系数$\lambda$，原矩阵$X$，信息矩阵$A$，UV初始值幅度$e$，收敛条件$\epsilon$}
+        \KwOut{矩阵的UV分解$X\approx UV^T$}
+
+        initialize $U_0=Rand_{N_u,k}e, V_0=Rand_{N_m,k}e, J_0=0, dJ = \epsilon + 1, i=0$\;
+        \While{$dJ > \epsilon$}{
+            $U_{i+1}=U_i-\alpha ((AU_iV_i^T-X)V_i+2\lambda U_i)$\;
+            $V_{i+1}=V_i-\alpha ((AU_iV_i^T-X)^TU_i+2\lambda V_i)$\;
+            $J_{i+1} =||AU_{i+1}V_{i+1}^T-X||_2^2/2 + \lambda ||U_{i+1}||_2^2 + \lambda ||V_{i+1}||_F^2$\;
+            $dJ = J_{i} - J_{i+1}$\;
+            $i = i + 1$\;
+        }
+    \end{algorithm}
+
+    写出基于Gauss-Seidel迭代的UV分解算法，如\cref{alg:gauss}所示。
+    \begin{algorithm}
+        \caption{矩阵的UV分解算法(Gauss-Seidel)}
+        \label{alg:gauss}
+        \KwIn{学习率$\alpha$，隐空间维度$k$，正则项系数$\lambda$，原矩阵$X$，信息矩阵$A$，UV初始值幅度$e$，收敛条件$\epsilon$}
+        \KwOut{矩阵的UV分解$X\approx UV^T$}
+
+        initialize $U_0=Rand_{N_u,k}e, V_0=Rand_{N_m,k}e, J_0=0, dJ = \epsilon + 1, i=0$\;
+        \While{$dJ > \epsilon$}{
+            $U_{i+1}=U_i-\alpha ((AU_iV_i^T-X)V_i+2\lambda U_i)$\;
+            $V_{i+1}=V_i-\alpha ((AU_{i+1}V_i^T-X)U_{i+1}+2\lambda V_i)$\;
+            $J_{i+1} =||AU_{i+1}V_{i+1}^T-X||_2^2/2 + \lambda ||U_{i+1}||_2^2 + \lambda ||V_{i+1}||_F^2$\;
+            $dJ = J_{i} - J_{i+1}$\;
+            $i = i + 1$\;
+        }
+    \end{algorithm}
+
+    Gauss-Seidel算法与Jacobi算法的区别在于，前者在每步中，每次更新各个变量时，总是使用最新的结果。一般来讲，Gauss-Seidel迭代的收敛速度要比Jacobi更好，但具体到本题需要通过实验验证效率情况。
     \subsection{算法实现}
 
     \subsection{结果分析}

@@ -62,5 +62,4 @@ def uvPred(trainMatrix, testMatrix, A=None, B=None, C=None,\
         rmseList.append(rmse)
         if JL - J < eps:
             break
-        break
     return rmse, rmseList, jList

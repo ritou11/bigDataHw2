@@ -53,8 +53,6 @@ for k in kList:
                     uinit, vinit, 400)
         resLM.loc[lbd, k] = rmse
         resLMList[(lbd, k)] = (rmseList, jList)
-        break
-    break
 
 with open('output/paramRes.pkl', 'wb') as f:
     pkl.dump(res, f)

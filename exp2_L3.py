@@ -44,5 +44,5 @@ t5 = time()
 print('Predict & test: %.2fms' % ((t5 - t4) * 1000), file=resFile)
 print('Total: %.2fms' % ((t5 - t2) * 1000), file=resFile)
 
-print('RMSE = %.2f' % rmse, file=resFile)
+print('RMSE = %.3f' % rmse, file=resFile)
 resFile.close()

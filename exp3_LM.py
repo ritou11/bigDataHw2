@@ -53,7 +53,7 @@ J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)*
 jList.append(J)
 rmseList.append(rmse)
 
-t3 = time()
+t0 = t3 = time()
 print('Init values: %.2fms' % ((t3 - t2) * 1000), file=resFile)
 
 for i in range(MAX_ITER):
@@ -79,10 +79,10 @@ for i in range(MAX_ITER):
     print('rmse = %.3f, J = %.1f' % (rmse, J), file=resFile)
     t3 = t4
 
-    if np.abs(JL - J) < eps:
+    if JL - J < eps:
         break
-    if rmse > rmseL + 1e-4:
-        break
+
+print('Average step time = %.2fms' % ((t3 - t0) * 1000 / (i + 1)), file=resFile)
 
 with open('output/exp3_lm_jlist.pkl', 'wb') as f:
     pkl.dump(jList, f)

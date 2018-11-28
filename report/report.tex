@@ -8,7 +8,7 @@
 \runninghead{大数据分析(B)课程报告}
 \studytime{2018年11月}
 
-\graphicspath{{./}{./output/}}
+\graphicspath{{./}{../output/}}
 
 \begin{document}
     \maketitle
@@ -186,10 +186,10 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
         \toprule
         算法&分子计算时间&分母计算时间&预测时间&总时间&RMSE\\
         \midrule
-        Original & - & - & - & - & - \\
-        Standard & - & - & - & - & - \\
-        L3 & - & - & - & - & - \\
-        LM & - & - & - & - & - \\
+        Original & - & - & - & 2111999.77ms & 1.02 \\
+        Standard & 139579.92ms & 143101.54ms & 7331.79ms & 290013.25ms & 1.02 \\
+        L3 & 91306.96ms & 139133.05ms & 7889.58ms & 238329.59ms & 0.93 \\
+        LM & 133149.89ms & 137770.19ms & 7711.46ms & 278631.54ms & 0.87 \\
         \bottomrule
       \end{tabular}
     \end{table}
@@ -261,8 +261,8 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
     \subsection{算法实现}
 
     \subsection{结果分析}
-    采用\cref{tbl:exp3para}所示的参数，运行程序并统计结果，如\cref{tbl:exp3}所示。
-    
+    采用\cref{tbl:exp3para}所示的参数，运行程序并统计结果，如\cref{tbl:exp3}所示。迭代过程中RMSE和目标函数J值的变化如\cref{fig:exp3_k50l2,fig:exp3_l3_k50l2,fig:exp3_lm_k50l2}所示。
+
     \begin{table}
       \centering
       \caption{算例所采用的参数表}
@@ -273,7 +273,8 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
         \midrule
         $\lambda$ & $10^{-2}$ \\
         $k$ & $50$ \\
-        $\alpha$ & $10^{-4}$ \\
+        $\alpha$ & Original \& Gauss: $10^{-4}$\\
+         & L3 \& LM: $5\times 10^{-5}$ \\
         $\epsilon$ & $10^{3}$ \\
         $e$ & $10^{-2}$ \\
         \bottomrule
@@ -282,19 +283,42 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
 
     \begin{table}
       \centering
-      \caption{矩阵分解算法结果对比}
+      \caption{矩阵分解算法结果对比(TODO:不应使用rmse判断收敛)}
       \label{tbl:exp3}
       \begin{tabular}{lrrrr}
         \toprule
         算法&平均单步时间&迭代次数&总时间&RMSE\\
         \midrule
-        Original & - & - & - & - \\
-        Gauss & - & - & - & - \\
-        L3 & - & - & - & - \\
-        LM & - & - & - & - \\
+        Original & - & 153 & - & 0.907 \\
+        Gauss & 4299.47ms & 123 & 528534.81ms & 0.918 \\
+        L3 & 2580.86ms & 153 & 394871.58ms & 0.799 \\
+        LM & 2809.87ms & 158 & 433959.46ms & 0.803 \\
         \bottomrule
       \end{tabular}
     \end{table}
+
+    \begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.9\linewidth]{exp3_combined_k50l2}
+      \caption{Jacobi/Gauss-Seidel矩阵分解法RMSE与J变化曲线($k=50,\lambda=0.01$)}
+      \label{fig:exp3_k50l2}
+    \end{figure}
+    \begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.9\linewidth]{exp3_l3_k50l2}
+      \caption{L3-Jacobi矩阵分解法RMSE与J变化曲线($k=50,\lambda=0.01$)}
+      \label{fig:exp3_l3_k50l2}
+    \end{figure}
+    \begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.9\linewidth]{exp3_lm_k50l2}
+      \caption{LM-Jacobi矩阵分解法RMSE与J变化曲线($k=50,\lambda=0.01$)}
+      \label{fig:exp3_lm_k50l2}
+    \end{figure}
+
+    特别关注作业要求分析的\cref{fig:exp3_k50l2}。可见，目标函数值和RMSE的下降趋势基本相同，这说明所设计的目标函数是合理的，的确能够反映隐空间对原矩阵的拟合效果。在开始的几步时，目标函数下降较慢，而在5步以后，目标函数值开始快速下降，直到收敛至最终值附近，下降速度开始放缓并触发收敛判据。
+
+    \cref{fig:exp3_k50l2}对比Jacobi迭代和Gauss-Seidel迭代可见，后者的收敛速度的确较前者更快，且二者都能收敛到相近的目标函数值及解上。然而，通过\cref{tbl:exp3}可知，Gauss-Seidel法下降更快导致更早触发收敛判据，尽管目标函数值已经收敛，其对原矩阵的拟合效果并不好。另外，虽然Gauss-Seidel的迭代步数更少，但其在每一步中都需要重新计算$UV^T$，导致运算效率大大降低，总体时间更长。归根结底，Gauss-Seidel方法不够出色的原因，是我们只有两个变量UV，无法体现其优势，并且由于单次计算量大，Jacobi带来的缓存优化更胜一筹。因此，在本题中使用Jacobi方法更为合适，对于L3方法和LM方法的测试，都是基于Jacobi方法的。
     \label{applastpage}
     \newpage
     \bibliographystyle{ieeetr}

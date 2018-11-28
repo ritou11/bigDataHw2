@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set(color_codes=True)
 sns.set_style('ticks')
-resFile = open('output/exp2_gauss.log', 'w')
+resFile = open('output/exp3_gauss.log', 'w')
 
 lbd = 1e-2
 k = 50
@@ -44,7 +44,7 @@ J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)*
 jList.append(J)
 rmseList.append(rmse)
 
-t3 = time()
+t0 = t3 = time()
 print('Init values: %.2fms' % ((t3 - t2) * 1000), file=resFile)
 
 for i in range(MAX_ITER):
@@ -57,6 +57,7 @@ for i in range(MAX_ITER):
     AUVT = A.multiply(UVT)
     AUVTX = AUVT - trainMatrix
 
+    rmseL = rmse
     rmse = norm(mask.multiply(UVT) - testMatrix) / np.sqrt(n)
     JL = J
     J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)**2
@@ -68,8 +69,10 @@ for i in range(MAX_ITER):
     print('rmse = %.3f, J = %.1f' % (rmse, J), file=resFile)
     t3 = t4
 
-    if np.abs(JL - J) < eps:
+    if JL - J < eps:
         break
+
+print('Average step time = %.2fms' % ((t3 - t0) * 1000 / (i + 1)), file=resFile)
 
 with open('output/exp3_gauss_jlist.pkl', 'wb') as f:
     pkl.dump(jList, f)

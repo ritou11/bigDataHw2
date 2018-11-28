@@ -33,21 +33,14 @@ print('Calc lower: %.2fms' % ((t4 - t3) * 1000), file=resFile)
 
 predMat = upper.multiply(lower.power(-1))
 
-t5 = time()
-print('Predict: %.2fms' % ((t5 - t4) * 1000), file=resFile)
-
 n = testMatrix.count_nonzero()
 testMask = (testMatrix != 0).astype(int)
 maskPredMat = predMat.multiply(testMask)
 rmse = norm(maskPredMat - testMatrix) / np.sqrt(n)
 
-t6 = time()
-print('Predict test: %.2fms' % ((t6 - t5) * 1000), file=resFile)
+t5 = time()
+print('Predict & test: %.2fms' % ((t5 - t4) * 1000), file=resFile)
+print('Total: %.2fms' % ((t5 - t2) * 1000), file=resFile)
 
 print('RMSE = %.2f' % rmse, file=resFile)
-with open('output/predMat.pkl', 'wb') as f:
-    pkl.dump(predMat, f)
-
-t7 = time()
-print('Save result: %.2fms' % ((t7 - t6) * 1000), file=resFile)
 resFile.close()

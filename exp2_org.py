@@ -48,12 +48,6 @@ rmse = np.sqrt(rmse / n)
 
 t3 = time()
 print('Predict test: %.2fms' % ((t3 - t2) * 1000), file=resFile)
+print('RMSE = %.2f' % rmse, file=resFile)
 
-print('RMSE = %.2f' % rmse)
-predMat = coo_matrix((predict_data, (testMatrix.row, testMatrix.col)), shape=(hg.N, hg.N))
-with open('output/predMat.pkl', 'wb') as f:
-    pkl.dump(predMat, f)
-
-t4 = time()
-print('Save result: %.2fms' % ((t4 - t3) * 1000), file=resFile)
 resFile.close()

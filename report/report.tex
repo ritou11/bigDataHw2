@@ -75,6 +75,7 @@ def getMatrixFromTxt(self, filename, level=0):
     \paragraph{问题描述}
     实现基于用户的协同过滤算法：猜测用户$i$是否喜欢电影$j$，只要看与$i$相似的用户是否喜欢$j$。与$i$越相似的用户，其对j的评分越有参考价值。
     \subsection{原理推导}
+    \label{exp2eq}
     根据原理写出
     \begin{equation}
       \bar S_{ij} = \frac{\sum\limits_{k\in U} Q_{ik}S_{kj}}{\sum\limits_{k\in U} |Q_{ik}|}
@@ -133,6 +134,7 @@ def getMatrixFromTxt(self, filename, level=0):
       \text{RMSE}=||T - \bar S\circ B||_2/\sqrt{n}
     \end{equation}
     \subsection{算法实现}
+    \label{exp2alg}
     在本任务中，首先考虑最简单的$level=0$情况，此时相当于认为用户对未评分的电影评分为0。基本代码见附件exp2\_org.py及exp2.py，思路按照上文所述。其中涉及两个技巧，其一是矩阵信息数据，采用pickle读取实验一中生成的文件，
     其二是信息矩阵的生成，可以采用
     \begin{lstlisting}[language=python]
@@ -252,10 +254,47 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
     \end{algorithm}
 
     Gauss-Seidel算法与Jacobi算法的区别在于，前者在每步中，每次更新各个变量时，总是使用最新的结果。一般来讲，Gauss-Seidel迭代的收敛速度要比Jacobi更好，但具体到本题需要通过实验验证效率情况。
+
+    根据该原理，令待分解矩阵$X=S$，则预测矩阵为$\bar S=UV^T$。利用与\cref{exp2eq}相同的计算方式，可以得到本方法的RMSE。
+
+    同时，\cref{exp2alg}中提出的L3方法及LM方法，由于改善的是输入矩阵$S$的合理性，因此在此处同样适用。
     \subsection{算法实现}
 
     \subsection{结果分析}
+    采用\cref{tbl:exp3para}所示的参数，运行程序并统计结果，如\cref{tbl:exp3}所示。
+    
+    \begin{table}
+      \centering
+      \caption{算例所采用的参数表}
+      \label{tbl:exp3para}
+      \begin{tabular}{lr}
+        \toprule
+        参数&值\\
+        \midrule
+        $\lambda$ & $10^{-2}$ \\
+        $k$ & $50$ \\
+        $\alpha$ & $10^{-4}$ \\
+        $\epsilon$ & $10^{3}$ \\
+        $e$ & $10^{-2}$ \\
+        \bottomrule
+      \end{tabular}
+    \end{table}
 
+    \begin{table}
+      \centering
+      \caption{矩阵分解算法结果对比}
+      \label{tbl:exp3}
+      \begin{tabular}{lrrrr}
+        \toprule
+        算法&平均单步时间&迭代次数&总时间&RMSE\\
+        \midrule
+        Original & - & - & - & - \\
+        Gauss & - & - & - & - \\
+        L3 & - & - & - & - \\
+        LM & - & - & - & - \\
+        \bottomrule
+      \end{tabular}
+    \end{table}
     \label{applastpage}
     \newpage
     \bibliographystyle{ieeetr}

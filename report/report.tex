@@ -259,9 +259,31 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
 
     同时，\cref{exp2alg}中提出的L3方法及LM方法，由于改善的是输入矩阵$S$的合理性，因此在此处同样适用。
     \subsection{算法实现}
+    根据\cref{alg:gauss,alg:jacobi}写出相应Python代码即可。为了提高计算效率，需要使用一些技巧。
+    \begin{enumerate}
+      \item 缓存，使用内存空间换取重复计算的时间。由于大型矩阵运算计算量很大，因此应该将一些中间变量储存下来，避免每一步重复计算。如此处则缓存了AUVTX代表$A\circ (X-UV^T)$。
+    \begin{lstlisting}[language=python,breaklines=true]
+for i in range(MAX_ITER):
+  pJU = AUVTX * V + 2 * lbd * U
+  pJV = AUVTX.T * U + 2 * lbd * V
+  U = U - alpha * pJU
+  V = V - alpha * pJV
+  UVT = U * V.T
+  AUVT = A.multiply(UVT)
+  AUVTX = AUVT - trainMatrix
+  rmse = norm(mask.multiply(UVT) - testMatrix) / np.sqrt(n)
+  JL = J
+  J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)**2
+  if JL - J < eps:
+      break
+    \end{lstlisting}
+      \item 在迭代步骤中，我们计算RMSE作为作业参考，但算法本身不应使用RMSE作为收敛判据的一部分，即在训练过程中不能利用任何与测试集相关的信息。
+      \item 设置最大迭代次数防止迭代程序跑飞。
+      \item 由于本实验中对比Gauss-Seidel、Jacobi迭代方法，以及L3、LM等改进方法，因此一些常用的输入矩阵应进行缓存，使用硬盘空间换取每次的计算时间。
+    \end{enumerate}
 
     \subsection{结果分析}
-    采用\cref{tbl:exp3para}所示的参数，运行程序并统计结果，如\cref{tbl:exp3}所示。迭代过程中RMSE和目标函数J值的变化如\cref{fig:exp3_k50l2,fig:exp3_l3_k50l2,fig:exp3_lm_k50l2}所示。
+    程序使用的参数如\cref{tbl:exp3para}所示，其中$\alpha$值的区别是经过试探得到的，在L3、LM方法中使用更大的$\alpha$也可以保证收敛，同时提高了收敛速度。运行程序并统计结果，如\cref{tbl:exp3}所示。迭代过程中RMSE和目标函数J值的变化如\cref{fig:exp3_k50l2,fig:exp3_l3_k50l2,fig:exp3_lm_k50l2}所示。
 
     \begin{table}
       \centering
@@ -283,7 +305,7 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
 
     \begin{table}
       \centering
-      \caption{矩阵分解算法结果对比(TODO:不应使用rmse判断收敛)}
+      \caption{矩阵分解算法结果对比}
       \label{tbl:exp3}
       \begin{tabular}{lrrrr}
         \toprule
@@ -291,8 +313,8 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
         \midrule
         Original & - & 153 & - & 0.907 \\
         Gauss & 4299.47ms & 123 & 528534.81ms & 0.918 \\
-        L3 & 2580.86ms & 153 & 394871.58ms & 0.799 \\
-        LM & 2809.87ms & 158 & 433959.46ms & 0.803 \\
+        L3 & 2580.86ms & 213 & 394871.58ms & 0.807 \\
+        LM & 2809.87ms & 244 & 433959.46ms & 0.810 \\
         \bottomrule
       \end{tabular}
     \end{table}
@@ -306,13 +328,13 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
     \begin{figure}[htbp]
       \centering
       \includegraphics[width=0.9\linewidth]{exp3_l3_k50l2}
-      \caption{L3-Jacobi矩阵分解法RMSE与J变化曲线($k=50,\lambda=0.01$)}
+      \caption{L3-Jacobi矩阵分解法RMSE与J变化曲线($k=50,\lambda=0.01$TODO)}
       \label{fig:exp3_l3_k50l2}
     \end{figure}
     \begin{figure}[htbp]
       \centering
       \includegraphics[width=0.9\linewidth]{exp3_lm_k50l2}
-      \caption{LM-Jacobi矩阵分解法RMSE与J变化曲线($k=50,\lambda=0.01$)}
+      \caption{LM-Jacobi矩阵分解法RMSE与J变化曲线($k=50,\lambda=0.01$TODO)}
       \label{fig:exp3_lm_k50l2}
     \end{figure}
 
@@ -320,29 +342,42 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
 
     \cref{fig:exp3_k50l2}对比Jacobi迭代和Gauss-Seidel迭代可见，后者的收敛速度的确较前者更快，且二者都能收敛到相近的目标函数值及解上。然而，通过\cref{tbl:exp3}可知，Gauss-Seidel法下降更快导致更早触发收敛判据，尽管目标函数值已经收敛，其对原矩阵的拟合效果并不好。另外，虽然Gauss-Seidel的迭代步数更少，但其在每一步中都需要重新计算$UV^T$，导致运算效率大大降低，总体时间更长。归根结底，Gauss-Seidel方法不够出色的原因，是我们只有两个变量UV，无法体现其优势，并且由于单次计算量大，Jacobi带来的缓存优化更胜一筹。因此，在本题中使用Jacobi方法更为合适，对于L3方法和LM方法的测试，都是基于Jacobi方法的。
 
-    \subsection{参数优化}
+    注意到，\cref{fig:exp3_l3_k50l2,fig:exp3_lm_k50l2}中，RMSE曲线有尾部上翘现象，意味着在迭代过程中目标函数收敛之前，RMSE曾达到更小的值。由于我们不应使用任何测试集的信息，因此只能拿到最后的RMSE。这个问题，一方面是由于目标函数的设计和当前问题的拟合效果不好，如果改善目标函数，如调整$\lambda$参数，情况应该有所改善，在\cref{sub:param}中也有所体现；另一方面是由于迭代次数过多后，出现过拟合现象(TODO说明过拟合)。
 
-    \begin{table}
+    \subsection{参数优化}
+    \label{sub:param}
+    作业中的默认参数$k=50,\lambda=0.01$，已经可以达到很好的收敛效果和预测效果。为了找到更好的参数，我们对原参数附近的值进行试探扫描。经过设计，我们扫描的区间是$k=\{10,30,50,70,90\},\lambda=\{0.001,0.01,0.1,10,100\}$，得到结果如\cref{tbl:paramRes,tbl:paramResL3,tbl:paramResLM}所示。
+
+    \begin{table}[htbp]
       \centering
       \caption{原始矩阵分解算法参数优化}
       \label{tbl:paramRes}
       \include{meta/paramRes}
     \end{table}
-
-    \begin{table}
+    \begin{table}[htbp]
       \centering
       \caption{L3矩阵分解算法参数优化}
       \label{tbl:paramResL3}
       \include{meta/paramResL3}
     \end{table}
-
-    \begin{table}
+    \begin{table}[htbp]
       \centering
       \caption{LM矩阵分解算法参数优化}
       \label{tbl:paramResLM}
       \include{meta/paramResLM}
     \end{table}
-    
+
+    因此，我们可以得到优化后的参数如下：
+    \begin{enumerate}
+      \item 原方法：$k=70,\lambda=10$，结果为$RMSE=0.888$，203步收敛。
+      \item L3方法：$k=70,\lambda=10$，结果为$RMSE=0.796$，244步收敛。
+      \item LM方法：$k=70,\lambda=10$，结果为$RMSE=0.800$，246步收敛。
+    \end{enumerate}
+
+    可见，在本报告提出的方法和原方法中，$k=70,\lambda=10$都是一组更好的参数。另外，在矩阵分解方法中，L3方法的表现从收敛速度、最终结果上都要优于LM算法，这是出乎意料的。
+    \section{方法对比}
+    TODO
+
     \label{applastpage}
     \newpage
     \bibliographystyle{ieeetr}

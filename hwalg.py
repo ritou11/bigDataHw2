@@ -43,7 +43,7 @@ def uvPred(trainMatrix, testMatrix, A=None, B=None, C=None,\
     UVT = U * V.T
     AUVT = A.multiply(UVT)
     AUVTX = AUVT - trainMatrix
-    rmse = norm(B.multiply(UVT) - testMatrix) / np.sqrt(n)
+    rmse = norm(B.multiply(UVT) + C - testMatrix) / np.sqrt(n)
     J = 0.5 * norm(AUVTX)**2 + lbd * np.linalg.norm(U)**2 + lbd * np.linalg.norm(V)**2
     jList.append(J)
     rmseList.append(rmse)

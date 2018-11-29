@@ -186,15 +186,15 @@ maskPredMat = predMat.multiply(testMask) + trainMean * testMask
         \toprule
         算法&分子计算时间&分母计算时间&预测时间&总时间&RMSE\\
         \midrule
-        Original & - & - & - & 2111999.77ms & 1.02 \\
-        Standard & 139579.92ms & 143101.54ms & 7331.79ms & 290013.25ms & 1.02 \\
-        L3 & 91306.96ms & 139133.05ms & 7889.58ms & 238329.59ms & 0.93 \\
-        LM & 133149.89ms & 137770.19ms & 7711.46ms & 278631.54ms & 0.87 \\
+        Original & - & - & - & 2111999.77ms & 1.018 \\
+        Standard & 139579.92ms & 143101.54ms & 7331.79ms & 290013.25ms & 1.018 \\
+        L3 & 91306.96ms & 139133.05ms & 7889.58ms & 238329.59ms & 0.931 \\
+        LM & 133149.89ms & 137770.19ms & 7711.46ms & 278631.54ms & 0.872 \\
         \bottomrule
       \end{tabular}
     \end{table}
     \begin{enumerate}
-      \item Python矩阵运算底层优化带来的效率提升要比1.72\%的稀疏性带来的运算减少有效得多，效率大致提升TODO倍。可见，Python矩阵运算库经过了十分精细、强大的优化，更适合用在这里。
+      \item Python矩阵运算底层优化带来的效率提升要比1.72\%的稀疏性带来的运算减少有效得多，效率大致提升7.28倍，那么矩阵运算底层优化的效率提高相较于For循环逐个运算起码在400倍。可见，Python矩阵运算库经过了十分精细、强大的优化，更适合用在这里。
       \item L3方法与LM方法带来的效果改进是显著的。
       \item L3方法由于提升了训练集的稀疏度，因此分子的计算效率更高；由于其使用的信息矩阵是通过原矩阵求出的，因此分母计算时间几乎不变。
     \end{enumerate}
@@ -283,7 +283,7 @@ for i in range(MAX_ITER):
     \end{enumerate}
 
     \subsection{结果分析}
-    程序使用的参数如\cref{tbl:exp3para}所示，其中$\alpha$值的区别是经过试探得到的，在L3、LM方法中使用更大的$\alpha$也可以保证收敛，同时提高了收敛速度。运行程序并统计结果，如\cref{tbl:exp3}所示。迭代过程中RMSE和目标函数J值的变化如\cref{fig:exp3_k50l2,fig:exp3_l3_k50l2,fig:exp3_lm_k50l2}所示。
+    程序使用的参数如\cref{tbl:exp3para}所示，其中$\alpha$值的区别是经过试探得到的，在L3、LM方法中使用更大的$\alpha$也可以保证收敛，同时提高了收敛速度。运行程序并统计结果，如\cref{tbl:exp3}所示。迭代过程中RMSE和目标函数J值的变化如\cref{fig:exp3_k50l2,fig:exp3_l3,fig:exp3_lm}所示。
 
     \begin{table}
       \centering
@@ -311,7 +311,7 @@ for i in range(MAX_ITER):
         \toprule
         算法&平均单步时间&迭代次数&总时间&RMSE\\
         \midrule
-        Original & - & 153 & - & 0.907 \\
+        Original & 2598.55ms & 153 & 397578.15ms & 0.907 \\
         Gauss & 4299.47ms & 123 & 528534.81ms & 0.918 \\
         L3 & 2580.86ms & 213 & 394871.58ms & 0.807 \\
         LM & 2809.87ms & 244 & 433959.46ms & 0.810 \\
@@ -342,7 +342,7 @@ for i in range(MAX_ITER):
 
     \cref{fig:exp3_k50l2}对比Jacobi迭代和Gauss-Seidel迭代可见，后者的收敛速度的确较前者更快，且二者都能收敛到相近的目标函数值及解上。然而，通过\cref{tbl:exp3}可知，Gauss-Seidel法下降更快导致更早触发收敛判据，尽管目标函数值已经收敛，其对原矩阵的拟合效果并不好。另外，虽然Gauss-Seidel的迭代步数更少，但其在每一步中都需要重新计算$UV^T$，导致运算效率大大降低，总体时间更长。归根结底，Gauss-Seidel方法不够出色的原因，是我们只有两个变量UV，无法体现其优势，并且由于单次计算量大，Jacobi带来的缓存优化更胜一筹。因此，在本题中使用Jacobi方法更为合适，对于L3方法和LM方法的测试，都是基于Jacobi方法的。
 
-    注意到，\cref{fig:exp3_l3_k50l2,fig:exp3_lm_k50l2}中，RMSE曲线有尾部上翘现象，意味着在迭代过程中目标函数收敛之前，RMSE曾达到更小的值。由于我们不应使用任何测试集的信息，因此只能拿到最后的RMSE。这个问题，一方面是由于迭代次数过多后，出现过拟合现象(TODO说明过拟合)；另一方面是由于目标函数的设计和当前问题的拟合效果不好，如果改善目标函数，例如调整$\lambda$参数，情况将有所改善。在\cref{sub:param}中优化得到的参数$k=70,\lambda=10$得到的曲线在\cref{fig:exp3_l3,fig:exp3_lm}用虚线展示，可见尾部上翘现象已经消除。
+    注意到，\cref{fig:exp3_l3,fig:exp3_lm}中，$k=50,\lambda=0.01$的RMSE曲线（红色实线）有尾部上翘现象，意味着在迭代过程中目标函数收敛之前，RMSE曾达到更小的值。由于我们不应使用任何测试集的信息，因此只能拿到最后的RMSE。这个问题，一方面是由于迭代次数过多后，出现过拟合现象；另一方面是由于目标函数的设计和当前问题的拟合效果不好，如果改善目标函数，例如调整$\lambda$参数，情况将有所改善。在\cref{sub:param}中优化得到的参数$k=70,\lambda=10$得到的曲线在\cref{fig:exp3_l3,fig:exp3_lm}用虚线展示，可见尾部上翘现象已经消除。
 
     \subsection{参数优化}
     \label{sub:param}
@@ -376,12 +376,31 @@ for i in range(MAX_ITER):
 
     可见，在本报告提出的方法和原方法中，$k=70,\lambda=10$都是一组更好的参数。另外，在矩阵分解方法中，L3方法的表现从收敛速度、最终结果上都要优于LM算法，这是出乎意料的。
     \section{方法对比}
-    TODO
+    \cref{tbl:hwcompare}中给出了协同过滤、矩阵分解的测试比较。由于矩阵分解的参数优化带来的时间变化在此处对比中无实质作用，因此此处矩阵分解的时间计算采用的参数仍为默认参数。
+
+    \begin{table}[htbp]
+      \centering
+      \caption{协同过滤与矩阵分解效果对比}
+      \label{tbl:hwcompare}
+      \begin{tabular}{ccrrr}
+      \toprule
+      改进措施 & 算法类型 & 总时间 & RMSE & 优化后RMSE \\
+      \midrule
+      \multirow{2}{*}{标准} & 协同过滤 &  290013.25ms & 1.018 & -\\
+                           & 矩阵分解 &  528534.81ms & 0.918 & 0.888 \\
+      \cline{1-5}
+      \multirow{2}{*}{L3} & 协同过滤 &  238329.59ms & 0.931 & - \\
+                           & 矩阵分解 &  394871.58ms & 0.807 & 0.796 \\
+      \cline{1-5}
+      \multirow{2}{*}{LM} & 协同过滤 &  278631.54ms & 0.872 & - \\
+                           & 矩阵分解 &  433959.46ms & 0.810 & 0.800 \\
+      \cline{1-5}
+      \end{tabular}
+    \end{table}
+
+    对比可知，对于每一种改善方法，协同过滤的计算效率都要高于矩阵分解，这意味着在一些对速度要求较高的场合应考虑协同过滤的方式。同时，协同过滤的算法还可以不用一次求出所有的预测值，在一些只需要知道极少数预测结果的场合更有用武之地，还可以尝试发展在线算法。而矩阵分解方法则在准确性上表现更优，采用L3或LM改善后，RMSE可以接近0.8，因此更适用于对准确度要求更高的场合。
 
     \label{applastpage}
-    \newpage
-    \bibliographystyle{ieeetr}
-    \bibliography{report}
 \iffalse
 \begin{itemize}[noitemsep,topsep=0pt]
 %no white space

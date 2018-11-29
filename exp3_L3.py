@@ -15,7 +15,7 @@ k = 50
 alpha = 5e-4
 eps = 1e3
 init_uv = 1e-2
-MAX_ITER = 200
+MAX_ITER = 400
 
 t1 = time()
 
